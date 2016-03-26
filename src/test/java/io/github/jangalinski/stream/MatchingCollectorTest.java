@@ -81,5 +81,11 @@ public class MatchingCollectorTest {
       assertThat(Stream.of(1, 3, 2).collect(match((a, b) -> b > a))).isEqualTo(Optional.of(3));
     }
 
+    @Test
+    public void keep_highest_value_parallel() {
+      assertThat(Stream.of(1, 45, 3, 2, null, 10,7,19,4,7,39).parallel().collect(match((a, b) -> b > a))).isEqualTo(Optional.of(45));
+    }
+
+
   }
 }

@@ -28,35 +28,40 @@ public class MatchingCollector<T> implements Collector<T, AtomicReference<T>, Op
 
   @Override
   public Supplier<AtomicReference<T>> supplier() {
-    return () -> new AtomicReference<T>();
+    // create a new empty value container (when the first element of a stream is reached)
+    return AtomicReference::new;
   }
 
   @Override
   public BiConsumer<AtomicReference<T>, T> accumulator() {
-    return (container, item) -> {
-      if (test(container.get(), item)) {
-        container.set(item);
-      }
-    };
+    // for each item on stream, call test() with container value and item and set best match in container.
+    return (container, item) -> container.accumulateAndGet(item, (o,n) -> test(o,n) ? n : o);
   }
 
   @Override
   public BinaryOperator<AtomicReference<T>> combiner() {
-    return (a, b) -> a;
+    // when joining parallel stream containers, use the test() function to check which one contains the best matching value.
+    return (a, b) -> test(a.get(), b.get()) ? b : a;
   }
 
   @Override
   public Function<AtomicReference<T>, Optional<T>> finisher() {
+    // when the stream is ended, return an Optional of the container value
     return reference -> Optional.ofNullable(reference.get());
   }
 
   @Override
   public Set<Characteristics> characteristics() {
+    // we only return one value, no order required
     return EnumSet.of(Characteristics.UNORDERED);
   }
 
   @Override
-  public boolean test(T containerValue, T streamItem) {
-    return itemIsNotNull.and(containerIsNull.or(predicate)).test(containerValue, streamItem);
+  public boolean test(T oldValue, T newValue) {
+    // the new value is better then the old one if:
+    // - it is not null
+    // - there is no container value
+    // - or if there is a container value, evaluating the given predicate is true
+    return itemIsNotNull.and(containerIsNull.or(predicate)).test(oldValue, newValue);
   }
 }
