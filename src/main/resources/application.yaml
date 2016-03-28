@@ -1,0 +1,6 @@
+example:
+  customer:
+    age: 25
+    firstname: Kermit
+    lastname: Frog
+    #duration: 10
